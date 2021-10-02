@@ -1,0 +1,13 @@
+pyrogram
+tgcrypto
+cycler
+numpy
+joblib
+kiwisolver
+pydub
+python-dateutil
+scikit-learn
+scipy
+six
+tqdm
+SpeechRecognition

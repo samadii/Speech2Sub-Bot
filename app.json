@@ -1,0 +1,29 @@
+{
+  "name": "Speech2Sub",
+  "env": {
+    "API_ID": {
+      "description": "Add your telegram API_ID",
+      "value": ""
+    },
+    "API_HASH": {
+      "description": "Add your telegram API_HASH",
+      "value": ""
+    },
+    "LANG_CODE": {
+      "description": "Add the code of the language which be spoken in your medias. (List of language codes: https://telegra.ph/List-of-BCP-47-language-codes-09-25-2)",
+      "value": "en-EN"
+    },
+    "BOT_TOKEN": {
+      "description": "Your bot token, as a string.",
+      "value": ""
+}
+  },
+  "buildpacks": [
+    {
+      "url": "https://github.com/jonathanong/heroku-buildpack-ffmpeg-latest"
+    },
+    {
+      "url": "heroku/python"
+    }
+  ]
+}
