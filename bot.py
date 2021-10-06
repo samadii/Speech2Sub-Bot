@@ -1,5 +1,6 @@
 import os
 import re
+import shutil
 import speech_recognition as sr
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
@@ -91,6 +92,8 @@ async def speech2srt(bot, m):
     media = m.audio or m.video or m.document
     if m.document and (not media.file_name.endswith(".mkv")) and (not media.file_name.endswith(".mp4")):
         return
+    if not os.path.isdir('temp/audio/'):
+        os.makedirs('temp/audio/')
     ext = ".mp3" if m.audio else f".{media.file_name.rsplit('.', 1)[1]}"
     msg = await m.reply("`Processing...`", parse_mode='md')
     await m.download(f"temp/file{ext}")
@@ -116,6 +119,8 @@ async def speech2srt(bot, m):
 
     await m.reply_document(document=srt_file_name, caption=f'{media.file_name.replace(".mp3", "").replace(".mp4", "").replace(".mkv", "")}')
     await msg.delete()
+    shutil.rmtree('temp/audio/')
+    line_count = 0
 
 
   
