@@ -90,18 +90,19 @@ def ds_process_audio(audio_file, file_handle):
 async def speech2srt(bot, m):
     global line_count
     media = m.audio or m.video or m.document
-    if m.document and (not media.file_name.endswith(".mkv")) and (not media.file_name.endswith(".mp4")):
-        return
+    msg = await m.reply("`Processing...`", parse_mode='md')
+    file_dl_path = await bot.download_media(message=m, file_name="temp/")
     if not os.path.isdir('temp/audio/'):
         os.makedirs('temp/audio/')
-    ext = ".mp3" if m.audio else f".{media.file_name.rsplit('.', 1)[1]}"
-    msg = await m.reply("`Processing...`", parse_mode='md')
-    await m.download(f"temp/file{ext}")
-    os.system(f"ffmpeg -i temp/file{ext} temp/audio/file.wav")
+    if m.audio or file_dl_path.lower().endswith('.mp3'):
+        os.system(f"ffmpeg -i {file_dl_path} -c copy -y temp/file.wav")
+    else:
+        os.system(f"ffmpeg -i {file_dl_path} -y temp/file.wav")
+
     base_directory = "temp/"
-    audio_directory = os.path.join(base_directory, "audio")
-    audio_file_name = os.path.join(audio_directory, "file.wav")
-    srt_file_name = f'temp/{media.file_name.replace(".mp3", "").replace(".mp4", "").replace(".mkv", "")}.srt'
+    audio_directory = "temp/audio/"
+    audio_file_name = "temp/audio/file.wav"
+    srt_file_name = f'temp/{media.file_name.rsplit(".", 1)[0]}.srt'
     
     print("Splitting on silent parts in audio file")
     silenceRemoval(audio_file_name)
@@ -119,6 +120,7 @@ async def speech2srt(bot, m):
 
     await m.reply_document(document=srt_file_name, caption=f'{media.file_name.replace(".mp3", "").replace(".mp4", "").replace(".mkv", "")}')
     await msg.delete()
+    os.remove(file_dl_path)
     shutil.rmtree('temp/audio/')
     line_count = 0
 
