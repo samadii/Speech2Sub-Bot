@@ -89,6 +89,8 @@ def ds_process_audio(audio_file, file_handle):
 @Bot.on_message(filters.private & (filters.video | filters.document | filters.audio ) & ~filters.edited, group=-1)
 async def speech2srt(bot, m):
     global line_count
+    if m.document and not m.document.mime_type.startswith("video/"):
+        return
     media = m.audio or m.video or m.document
     msg = await m.reply("`Processing...`", parse_mode='md')
     file_dl_path = await bot.download_media(message=m, file_name="temp/")
