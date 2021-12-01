@@ -118,7 +118,7 @@ async def speech2srt(bot, m):
     print("\nSRT file saved to", srt_file_name)
     file_handle.close()
 
-    await m.reply_document(document=srt_file_name, caption=f'{media.file_name.replace(".mp3", "").replace(".mp4", "").replace(".mkv", "")}')
+    await m.reply_document(document=srt_file_name, caption=media.file_name.rsplit(".", 1)[0])
     await msg.delete()
     os.remove(file_dl_path)
     shutil.rmtree('temp/audio/')
