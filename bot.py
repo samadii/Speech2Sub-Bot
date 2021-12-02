@@ -97,9 +97,9 @@ async def speech2srt(bot, m):
     if not os.path.isdir('temp/audio/'):
         os.makedirs('temp/audio/')
     if m.audio or file_dl_path.lower().endswith('.mp3'):
-        os.system(f"ffmpeg -i {file_dl_path} -c copy -y temp/file.wav")
+        os.system(f"ffmpeg -i {file_dl_path} temp/file.wav")
     else:
-        os.system(f"ffmpeg -i {file_dl_path} -y temp/file.wav")
+        os.system(f"ffmpeg -i {file_dl_path} -vn temp/file.wav")
 
     base_directory = "temp/"
     audio_directory = "temp/audio/"
