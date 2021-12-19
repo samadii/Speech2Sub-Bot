@@ -96,7 +96,7 @@ async def speech2srt(bot, m):
     file_dl_path = await bot.download_media(message=m, file_name="temp/")
     if not os.path.isdir('temp/audio/'):
         os.makedirs('temp/audio/')
-    os.system(f"ffmpeg -i {file_dl_path} -vn temp/file.wav")
+    os.system(f'ffmpeg -i "{file_dl_path}" -vn temp/file.wav')
 
     base_directory = "temp/"
     audio_directory = "temp/audio/"
