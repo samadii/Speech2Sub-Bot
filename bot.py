@@ -8,9 +8,12 @@ from segmentAudio import silenceRemoval
 from writeToFile import write_to_file
 from display_progress import progress_for_pyrogram
 
+rec = sr.Recognizer()
+
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 API_ID = os.environ.get("API_ID")
 API_HASH = os.environ.get("API_HASH")
+lang = os.environ.get("LANG_CODE")
 
 Bot = Client(
     "Bot",
@@ -25,7 +28,7 @@ I am Speech2Sub Bot.
 
 > `I can generate subtitles based on the speeches in medias.`
 
-Send me a media (video/audio) to get started.
+Send a video/audio/voice to get started.
 """
 
 START_BTN = InlineKeyboardMarkup(
@@ -65,16 +68,13 @@ def sort_alphanumeric(data):
 def ds_process_audio(audio_file, file_handle):  
     # Perform inference on audio segment
     global line_count
-    lang = os.environ.get("LANG_CODE")
     try:
-        r=sr.Recognizer()
         with sr.AudioFile(audio_file) as source:
-            audio_data=r.record(source)
-            text=r.recognize_google(audio_data,language=lang)
-            print(text)
+            audio_data = rec.record(source)
+            text = rec.recognize_google(audio_data,language=lang)
             infered_text = text
     except:
-        infered_text=""
+        infered_text = ""
         pass
     
     # File name contains start and end times in seconds. Extract that
@@ -85,28 +85,27 @@ def ds_process_audio(audio_file, file_handle):
         write_to_file(file_handle, infered_text, line_count, limits)
 
 
-@Bot.on_message(filters.private & (filters.video | filters.document | filters.audio ) & ~filters.edited, group=-1)
+@Bot.on_message(filters.private & (filters.video | filters.document | filters.audio | filters.voice) & ~filters.edited, group=-1)
 async def speech2srt(bot, m):
     global line_count
     if m.document and not m.document.mime_type.startswith("video/"):
         return
-    media = m.audio or m.video or m.document
+    media = m.audio or m.video or m.document or m.voice
     msg = await m.reply("`Downloading..`", parse_mode='md')
+    audio_directory = "temp/"
+    if not os.path.isdir(audio_directory):
+        os.makedirs(audio_directory)
     c_time = time.time()
-    file_dl_path = await bot.download_media(message=m, file_name="temp/", progress=progress_for_pyrogram, progress_args=("Downloading..", msg, c_time))
+    file_dl_path = await bot.download_media(message=m, progress=progress_for_pyrogram, progress_args=("Downloading..", msg, c_time))
     await msg.edit("`Now Processing...`", parse_mode='md')
-    if not os.path.isdir('temp/audio/'):
-        os.makedirs('temp/audio/')
-    os.system(f'ffmpeg -i "{file_dl_path}" -vn temp/audio/file.wav')
-    base_directory = "temp/"
-    audio_directory = "temp/audio/"
-    audio_file_name = "temp/audio/file.wav"
-    srt_file_name = f'temp/{media.file_name.rsplit(".", 1)[0]}.srt'
-    
+    audio_file_name = "temp/file.wav"
+    os.system(f'ffmpeg -i "{file_dl_path}" -vn -y {audio_file_name}')
+
     print("Splitting on silent parts in audio file")
     silenceRemoval(audio_file_name)
     
     # Output SRT file
+    srt_file_name = os.path.basename(file_dl_path).rsplit(".", 1)[0] + '.srt'
     file_handle = open(srt_file_name, "w")
     
     for file in tqdm(sort_alphanumeric(os.listdir(audio_directory))):
@@ -117,10 +116,11 @@ async def speech2srt(bot, m):
     print("\nSRT file saved to", srt_file_name)
     file_handle.close()
 
-    await m.reply_document(document=srt_file_name, caption=media.file_name.rsplit(".", 1)[0])
+    await m.reply_document(srt_file_name)
     await msg.delete()
     os.remove(file_dl_path)
-    shutil.rmtree('temp/audio/')
+    os.remove(srt_file_name)
+    shutil.rmtree('temp/')
     line_count = 0
 
 
