@@ -16,15 +16,15 @@ def write_to_file(file_handle, inferred_text, line_count, limits):
     
     d = str(datetime.timedelta(seconds=float(limits[0])))
     try:
-        from_dur = "0" + str(d.split(".")[0]) + "," + str(d.split(".")[-1][:2])
+        from_dur = "0" + str(d.split(".")[0]) + "." + str(d.split(".")[-1][:3])
     except:
-        from_dur = "0" + str(d) + "," + "00"
+        from_dur = "0" + str(d) + "." + "000"
         
     d = str(datetime.timedelta(seconds=float(limits[1])))
     try:
-        to_dur = "0" + str(d.split(".")[0]) + "," + str(d.split(".")[-1][:2])
+        to_dur = "0" + str(d.split(".")[0]) + "." + str(d.split(".")[-1][:3])
     except:
-        to_dur = "0" + str(d) + "," + "00"
+        to_dur = "0" + str(d) + "." + "000"
         
     file_handle.write(str(line_count) + "\n")
     file_handle.write(from_dur + " --> " + to_dur + "\n")
