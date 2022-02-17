@@ -1,19 +1,22 @@
-import os, re, time
-import shutil
-import speech_recognition as sr
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from tqdm import tqdm
 from segmentAudio import silenceRemoval
 from writeToFile import write_to_file
 from display_progress import progress_for_pyrogram
+import requests
+import wave, math, os, json, shutil, subprocess, asyncio, time, re
+from vosk import Model, KaldiRecognizer
 
-rec = sr.Recognizer()
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 API_ID = os.environ.get("API_ID")
 API_HASH = os.environ.get("API_HASH")
-lang = os.environ.get("LANG_CODE")
+# vosk supported language(code), see supported languages here: https://github.com/alphacep/vosk-api
+LANGUAGE_CODE = os.environ.get("LANG_CODE", "en-us")
+# language model download link (see available models here: https://alphacephei.com/vosk/models)
+MODEL_URL = os.environ.get("MODEL_DOWNLOAD_URL", "https://alphacephei.com/vosk/models/vosk-model-en-us-0.22-lgraph.zip")
+
 
 Bot = Client(
     "Bot",
@@ -48,6 +51,41 @@ async def start(bot, update):
         reply_markup=reply_markup
     )
 
+def download_and_unpack_models(model_url):
+    print("Start Downloading the Language Model...")
+    r = requests.get(model_url, allow_redirects=True)
+
+    total_size_in_bytes = int(r.headers.get('content-length', 0))
+    block_size = 1024  # 1 Kibibyte
+    progress_bar = tqdm(total=total_size_in_bytes, unit='iB', unit_scale=True)
+
+    file_name = model_url.split('/models/')[1]
+    with open(file_name, 'wb') as file:
+        for data in r.iter_content(block_size):
+            progress_bar.update(len(data))
+            file.write(data)
+    progress_bar.close()
+
+    if total_size_in_bytes != 0 and progress_bar.n != total_size_in_bytes:
+        print("ERROR, something went wrong")
+    else:
+        print("Downloaded Successfully. Now unpacking the model..")
+        shutil.unpack_archive(file_name)
+        model_target_dir = f'model-{LANGUAGE_CODE}'
+        if os.path.exists(model_target_dir):
+            os.remove(model_target_dir)
+        os.rename(file_name.rsplit('.', 1)[0], model_target_dir)
+        print("unpacking Done.")
+
+    os.remove(file_name)
+
+if not os.path.exists(f'model-{LANGUAGE_CODE}'):
+    download_and_unpack_models(MODEL_URL)
+
+# Initialize model
+model = Model(f'model-{LANGUAGE_CODE}')
+sample_rate = 16000
+rec = KaldiRecognizer(model, sample_rate)
 
 # Line count for SRT file
 line_count = 0
@@ -66,20 +104,22 @@ def sort_alphanumeric(data):
 
 
 def ds_process_audio(audio_file, file_handle):  
-    # Perform inference on audio segment
     global line_count
-    try:
-        with sr.AudioFile(audio_file) as source:
-            audio_data = rec.record(source)
-            text = rec.recognize_google(audio_data,language=lang)
-            infered_text = text
-    except:
-        infered_text = ""
-        pass
-    
     # File name contains start and end times in seconds. Extract that
     limits = audio_file.split("/")[-1][:-4].split("_")[-1].split("-")
-    
+    subprocess.call(['ffmpeg', '-loglevel', 'quiet', '-i',
+                     'temp/file.wav', '-ss', limits[0], '-to', limits[1],
+                     '-ar', '16000', '-ac', '1', '-c:a', 'pcm_s16le', '-y',
+                     'temp/mono.wav'])
+
+    wf = wave.open('temp/mono.wav', "rb")
+    data = wf.readframes(wf.getnframes())
+    if rec.AcceptWaveform(data):
+        result_dict = json.loads(rec.Result())
+        infered_text = result_dict.get("text", "")
+    else:
+        infered_text = ""
+
     if len(infered_text) != 0:
         line_count += 1
         write_to_file(file_handle, infered_text, line_count, limits)
@@ -110,9 +150,9 @@ async def speech2srt(bot, m):
     
     for file in tqdm(sort_alphanumeric(os.listdir(audio_directory))):
         audio_segment_path = os.path.join(audio_directory, file)
-        if audio_segment_path.split("/")[-1] != audio_file_name.split("/")[-1]:
+        if not audio_segment_path.split("/")[-1] in [audio_file_name.split("/")[-1], 'mono.wav']:
             ds_process_audio(audio_segment_path, file_handle)
-            
+
     print("\nSRT file saved to", srt_file_name)
     file_handle.close()
 
@@ -124,6 +164,4 @@ async def speech2srt(bot, m):
     line_count = 0
 
 
-  
-    
 Bot.run()
