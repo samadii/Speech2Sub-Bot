@@ -9,9 +9,13 @@
       "description": "Add your telegram API_HASH",
       "value": ""
     },
+    "MODEL_DOWNLOAD_URL": {
+      "description": "language model download link (see available models here: https://alphacephei.com/vosk/models)",
+      "value": "https://alphacephei.com/vosk/models/vosk-model-en-us-0.22-lgraph.zip"
+    },
     "LANG_CODE": {
-      "description": "Add the code of the language which be spoken in your medias. (List of language codes: https://telegra.ph/List-of-BCP-47-language-codes-09-25-2)",
-      "value": "en-EN"
+      "description": "vosk supported language(code), see supported languages here: https://github.com/alphacep/vosk-api",
+      "value": "en-us"
     },
     "BOT_TOKEN": {
       "description": "Your bot token, as a string.",
