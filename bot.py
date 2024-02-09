@@ -91,13 +91,13 @@ async def speech2srt(bot, m):
     if m.document and not m.document.mime_type.startswith("video/"):
         return
     media = m.audio or m.video or m.document or m.voice
-    msg = await m.reply("`Downloading..`", parse_mode='md')
+    msg = await m.reply("`Downloading..`")
     audio_directory = "temp/"
     if not os.path.isdir(audio_directory):
         os.makedirs(audio_directory)
     c_time = time.time()
     file_dl_path = await bot.download_media(message=m, progress=progress_for_pyrogram, progress_args=("Downloading..", msg, c_time))
-    await msg.edit("`Now Processing...`", parse_mode='md')
+    await msg.edit_text("`Now Processing...`")
     audio_file_name = "temp/file.wav"
     os.system(f'ffmpeg -i "{file_dl_path}" -vn -y {audio_file_name}')
 
